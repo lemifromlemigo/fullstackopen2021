@@ -1,11 +1,9 @@
 import React, { useState , useEffect } from 'react'
 import personService from './services/persons'
 
-
 const App = () => {
   const [ contacts, setContacts] = useState([]) 
-  const [ newName, setNewName ] = useState('')
-  const [ newNumber, setNewNumber ] = useState('')
+  const [ getcontacts, setGetcontacts ] = useState(false)
 
   useEffect(() => {
     personService
@@ -13,8 +11,20 @@ const App = () => {
       .then(response => {
         setContacts(response.data)
       })
-  })
-  console.log('render', contacts.length, 'contacts')
+  }, [getcontacts])
+
+  return (
+    <>
+      <SubApp contacts={contacts} setGetcontacts={setGetcontacts} />
+    </>
+  )
+}
+
+const SubApp = ({ contacts, setGetcontacts }) => {
+  const [ newName, setNewName ] = useState('')
+  const [ newNumber, setNewNumber ] = useState('')
+  const [ newMessage, setMessage ] = useState('')
+  const [ newMessageError, setMessageError ] = useState('')
 
   const handleName = (event) => (setNewName(event.target.value) || console.log(event.target.value))
   const handleNumber = (event) => (setNewNumber(event.target.value) || console.log(event.target.value))
@@ -22,19 +32,38 @@ const App = () => {
   const handleSubmit = (event) => {
     event.preventDefault()
     if (contacts.map((contact) => contact.name).includes(newName)) {
+
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
-        const contact = contacts.find((contact) => (contact === newName))
+        console.log(contacts)
+        const contact = contacts.filter((contact) => contact.name === newName)[0]
         console.log(contact)
-        personService.remove(contact.id, {'name': newName, 'number': newNumber, 'id': contact.id})
+
+        personService.update(contact.id, { name: contact.name, number: newNumber, id: contact.id })
+          .then(response => {
+            setMessage(`Changed ${newName}'s number to ${newNumber}`)
+            setTimeout(function() {
+              setGetcontacts(prev => !prev)
+            }, response.length > 0)
+            setTimeout(function() {
+              setMessage('')
+            },  2000);
+          })
       }
     } 
     else if (newName.length === 0 || newNumber.length === 0) {
       window.alert(`Fields can not be empty!`)
     }
     else {
-      personService.create({ name: newName, number: newNumber })
+      personService.create({ name: newName, number: newNumber }).then(response => {
+        setMessage(`Added: ${newName}`)
+        setTimeout(function() {
+          setGetcontacts(prev => !prev)
+        }, response.length > 0)
+        setTimeout(function() {
+          setMessage('')
+        }, 2000);
+      })
     }
-
     setNewName('')
     setNewNumber('')
   }
@@ -43,17 +72,45 @@ const App = () => {
     <div>
       <h2>PhoneBook 1.0.0</h2>
       <br />
-      <NewContactForm handleSubmit={handleSubmit} newName={newName} handleName={handleName} newNumber={newNumber} handleNumber={handleNumber}/>
+      <NewContactForm handleSubmit={handleSubmit} newName={newName} handleName={handleName}
+      newNumber={newNumber} handleNumber={handleNumber} message={newMessage} messageError={newMessageError} />
       <br />
-      <Search data={contacts} setContacts={setContacts}/>
+      <Search data={contacts} setMessage={setMessage} 
+      setMessageError={setMessageError} setGetcontacts={setGetcontacts} />
     </div>
   )
 }
 
 
-const NewContactForm = ({ handleSubmit, newName, handleName, newNumber, handleNumber }) => {
+const InfoMessage = ({ message }) => {
+  if (message.length > 0) {
+    return (
+      <div className='msg'>{message}</div>
+    )
+  } else {
+    return (<></>)
+  }
+
+}
+
+const ErrorMessage = ({ message }) => {
+  if (message.length > 0) {
+    return (
+      <div className='msgError'>{message}</div>
+    )
+  } else {
+    return (<></>)
+  }
+
+}
+
+
+const NewContactForm = ({ handleSubmit, newName, handleName,
+  newNumber, handleNumber, message, messageError }) => {
   return (
     <>
+      <ErrorMessage message={messageError} />
+      <InfoMessage message={message} />
       <h3>Add new contact:</h3>
       <form onSubmit={handleSubmit}>
         <div>Name: <input value={newName} onChange={handleName} /></div>
@@ -65,13 +122,14 @@ const NewContactForm = ({ handleSubmit, newName, handleName, newNumber, handleNu
 }
 
 
-const Search = ({ data }) => {
+const Search = ({ data, setMessage, setMessageError, setGetcontacts }) => {
   const [ newSearch, setNewSearch ] = useState('')
 
   const filteredContacts = data.filter(
     person => {
       return (
-        person.name.toLowerCase().includes(newSearch.toLowerCase()) || person.number.toLowerCase().includes(newSearch.toLowerCase())
+        person.name.toLowerCase().includes(newSearch.toLowerCase())
+        || person.number.toLowerCase().includes(newSearch.toLowerCase())
       )
     }
   )
@@ -81,7 +139,25 @@ const Search = ({ data }) => {
   const handleDelete = (contact) => {
     if (window.confirm(`Delete ${contact.name}?`)) {
       personService.remove(contact.id)
+        .then(response => {
+          console.log('Deleted!')
+          setMessage(`Removed ${contact.name}`) 
+          setTimeout(function() {
+            setGetcontacts(prev => !prev)
+          }, response.length > 0)
+        })
+      .catch(error => {
+        console.log('ERROR!')
+        setMessageError(`Information of ${contact.name} has already been removed from the server!`)
+        setTimeout(function() {
+          setGetcontacts(prev => !prev)
+        }, error.length > 0)
+      })
     }
+    setTimeout(function() {
+      setMessageError('')
+      setMessage('')
+    },  2000);
   }
 
   return (

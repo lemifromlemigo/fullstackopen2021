@@ -1,9 +1,7 @@
 import React from "react"
 
-const Course = (props) => {
-    console.log(props)
-    const name = props.name
-    const parts = props.parts
+
+const Course = ({ name, parts }) => {
   
     return (
       <div>
@@ -40,6 +38,7 @@ const Content = (props) => {
     )
   }
   
+
 const ContentRow = (props) => {
     console.log(props)
     const name = props.name

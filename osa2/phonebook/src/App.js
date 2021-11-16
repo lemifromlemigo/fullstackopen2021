@@ -1,14 +1,20 @@
 import React, { useState , useEffect } from 'react'
-import axios from 'axios'
+import personService from './services/persons'
 
 
 const App = () => {
-  const [ contacts, setContacts] = useState([
-    axios.get('http://localhost:3001/persons')
-  ]) 
-
+  const [ contacts, setContacts] = useState([]) 
   const [ newName, setNewName ] = useState('')
   const [ newNumber, setNewNumber ] = useState('')
+
+  useEffect(() => {
+    personService
+      .getAll()
+      .then(response => {
+        setContacts(response.data)
+      })
+  })
+  console.log('render', contacts.length, 'contacts')
 
   const handleName = (event) => (setNewName(event.target.value) || console.log(event.target.value))
   const handleNumber = (event) => (setNewNumber(event.target.value) || console.log(event.target.value))
@@ -16,14 +22,19 @@ const App = () => {
   const handleSubmit = (event) => {
     event.preventDefault()
     if (contacts.map((contact) => contact.name).includes(newName)) {
-      window.alert(`${newName} is already added to phonebook`)
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        const contact = contacts.find((contact) => (contact === newName))
+        console.log(contact)
+        personService.remove(contact.id, {'name': newName, 'number': newNumber, 'id': contact.id})
+      }
     } 
     else if (newName.length === 0 || newNumber.length === 0) {
       window.alert(`Fields can not be empty!`)
     }
     else {
-      setContacts(contacts.concat({ name: newName, number: newNumber })) || console.log('Added:', event.target)
+      personService.create({ name: newName, number: newNumber })
     }
+
     setNewName('')
     setNewNumber('')
   }
@@ -34,7 +45,7 @@ const App = () => {
       <br />
       <NewContactForm handleSubmit={handleSubmit} newName={newName} handleName={handleName} newNumber={newNumber} handleNumber={handleNumber}/>
       <br />
-      <Search data={contacts}/>
+      <Search data={contacts} setContacts={setContacts}/>
     </div>
   )
 }
@@ -42,14 +53,14 @@ const App = () => {
 
 const NewContactForm = ({ handleSubmit, newName, handleName, newNumber, handleNumber }) => {
   return (
-    <div>
+    <>
       <h3>Add new contact:</h3>
       <form onSubmit={handleSubmit}>
         <div>Name: <input value={newName} onChange={handleName} /></div>
         <div>Number: <input value={newNumber} onChange={handleNumber}/></div>
         <div><button type="submit">add</button></div>
       </form>
-    </div>
+    </>
   )
 }
 
@@ -67,17 +78,29 @@ const Search = ({ data }) => {
 
   const handleSearch = (event) => (setNewSearch(event.target.value) || console.log(event.target.value))
 
+  const handleDelete = (contact) => {
+    if (window.confirm(`Delete ${contact.name}?`)) {
+      personService.remove(contact.id)
+    }
+  }
+
   return (
-    <div>
+    <>
       <div>
       <h3>Contacts:</h3>
         <div>Filter: <input value={newSearch} onChange={handleSearch}/></div>
       </div>
       <br />
       <div>
-        {filteredContacts.map((contact) => <div key={contact.name}>{contact.name}: {contact.number}</div>)}
+        {filteredContacts.map((contact) => {
+          return(
+            <div key={contact.name}>
+              {contact.name}: {contact.number} |
+              <button value={contact} onClick={() => handleDelete(contact)}>Delete</button>
+            </div>
+        )})}
       </div>
-    </div>
+    </>
 
   )
 }

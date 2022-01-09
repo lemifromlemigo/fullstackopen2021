@@ -1,0 +1,31 @@
+.info {
+    color: white;
+    font-weight: bold;
+    background-color: green;
+    padding: 10px;
+    border-width: 5px;
+    border-radius: 5px;
+}
+
+.error {
+    color: white;
+    font-weight: bold;
+    background-color: red;
+    padding: 10px;
+    border-width: 5px;
+    border-radius: 5px;
+}
+
+.blog_box {
+    background-color: rgb(200, 200, 200);
+    max-width: 800px;
+    border-width: 10px;
+    border-radius: 25px;
+    border-color: black;
+    margin-top: 50px;
+}
+.blog_content {
+    max-width: 80%;
+    padding: 10px;
+    margin-left: 20px;
+}

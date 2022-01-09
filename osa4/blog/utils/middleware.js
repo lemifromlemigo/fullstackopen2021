@@ -23,14 +23,17 @@ const tokenExtractor = (req, res, next) => {
 
 // GET REQUEST USER
 const userExtractor = async (req, res, next) => {
-  const token = req.token
-  const decodedToken = jwt.verify(token, config.SECRET)
-  req.user = await User.findById(decodedToken.id)
+  console.log(req.headers.authorization)
+  if (req.headers.authorization !== 'null') {
+    const token = req.token
+    const decodedToken = jwt.verify(token, config.SECRET)
+    req.user = await User.findById(decodedToken.id)
 
-  if (!token || !req.user) {
-    res.status(401).json({ error: 'token missing or invalid' })
+    if (!token || !req.user) {
+      res.status(401).json({ error: 'token missing or invalid' })
+    }
   }
-  
+
   next()
 }
 

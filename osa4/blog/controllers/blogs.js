@@ -1,5 +1,6 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
+const logger = require('../utils/logger')
 
 // GET ALL BLOGS FROM DB
 blogsRouter.get('/', async (req, res) => {
@@ -45,7 +46,7 @@ blogsRouter.delete('/:id', async (req, res, next) => {
   const user = req.user
 
   const blog = await Blog.findById(blogid)
-  console.log(blog.user.toString())
+  logger.info(blog.user.toString())
 
   if ( blog.user.toString() === user.id.toString() ){
     try {
@@ -58,14 +59,22 @@ blogsRouter.delete('/:id', async (req, res, next) => {
 })
 
 // UPDATE BLOG ON DB
-blogsRouter.put('/api/notes/:id', (req, res, next) => {
-  const body = req.body
+blogsRouter.put('/:id', async (req, res, next) => {
+  logger.info('PARAMS: ' + req.params.id)
+  const blogid = req.params.id
+  const newBlog = req.body
 
-  Blog.findByIdAndUpdate(req.params.id, { content: body.content }, { new: true })
-    .then(updatedBlog => {
-      res.json(updatedBlog)
-    })
-    .catch(error => next(error))
+  delete newBlog.user
+
+  try {
+    await Blog.findById(blogid).update(newBlog)
+    res.status(204).end()
+  } catch (error) {
+    logger.info('---DB ERROR---')
+    logger.error(error)
+    res.status(400)
+    next(error)
+  }
 })
 
 module.exports = blogsRouter
